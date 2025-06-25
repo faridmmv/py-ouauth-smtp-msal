@@ -3,7 +3,8 @@
 OAuth SMTP Authentication with Azure Entra and MSAL for Python
 
 This module demonstrates how to authenticate SMTP connections using OAuth 2.0
-with Microsoft Azure Entra ID and the Microsoft Authentication Library (MSAL) for Python.
+Client Credentials flow with Microsoft Azure Entra ID and the Microsoft 
+Authentication Library (MSAL) for Python.
 """
 
 import os
@@ -56,7 +57,7 @@ class Config:
 
 
 class SMTPOAuthClient:
-    """SMTP client with OAuth 2.0 authentication support."""
+    """SMTP client with OAuth 2.0 Client Credentials authentication support."""
     
     def __init__(self, config: Config):
         self.config = config
@@ -65,7 +66,7 @@ class SMTPOAuthClient:
         
     def authenticate_with_client_credentials(self) -> bool:
         """
-        Authenticate using Client Credentials flow (app-only authentication).
+        Authenticate using Client Credentials flow (OAuth2 authorization code flow for applications).
         
         Returns:
             bool: True if authentication successful, False otherwise
@@ -88,51 +89,6 @@ class SMTPOAuthClient:
             if "access_token" in result:
                 self.access_token = result["access_token"]
                 logger.info("Client credentials authentication successful!")
-                return True
-            else:
-                error_description = result.get("error_description", "Unknown error")
-                logger.error(f"Authentication failed: {error_description}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Authentication error: {str(e)}")
-            return False
-    
-    def authenticate_with_device_code(self) -> bool:
-        """
-        Authenticate using Device Code flow (interactive authentication).
-        
-        Returns:
-            bool: True if authentication successful, False otherwise
-        """
-        try:
-            # Create public client application
-            authority = f"https://login.microsoftonline.com/{self.config.tenant_id}"
-            app = msal.PublicClientApplication(
-                client_id=self.config.client_id,
-                authority=authority
-            )
-            
-            # Define scopes
-            scopes = ["https://outlook.office365.com/.default"]
-            
-            # Initiate device code flow
-            flow = app.initiate_device_flow(scopes=scopes)
-            
-            if "user_code" not in flow:
-                logger.error("Failed to create device flow")
-                return False
-            
-            # Display user code and URL
-            print(f"\nTo sign in, use a web browser to open the page {flow['verification_uri']}")
-            print(f"and enter the code {flow['user_code']} to authenticate.\n")
-            
-            # Wait for authentication
-            result = app.acquire_token_by_device_flow(flow)
-            
-            if "access_token" in result:
-                self.access_token = result["access_token"]
-                logger.info("Device code authentication successful!")
                 return True
             else:
                 error_description = result.get("error_description", "Unknown error")
@@ -274,8 +230,8 @@ def main():
     smtp_client = SMTPOAuthClient(config)
     
     try:
-        # Authenticate using client credentials flow
-        print("Authenticating using Client Credentials Flow...")
+        # Authenticate using client credentials flow (OAuth2 authorization code flow)
+        print("Authenticating using Client Credentials Flow (OAuth2 authorization code flow)...")
         if not smtp_client.authenticate_with_client_credentials():
             logger.error("Client credentials authentication failed")
             sys.exit(1)
@@ -299,7 +255,7 @@ def main():
                 success = smtp_client.send_test_email(
                     recipient,
                     "OAuth SMTP Test - Python",
-                    "This is a test email sent using OAuth 2.0 authentication with Microsoft Exchange from Python."
+                    "This is a test email sent using OAuth 2.0 Client Credentials flow with Microsoft Exchange from Python."
                 )
                 
                 if not success:
